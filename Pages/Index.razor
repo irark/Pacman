@@ -1,0 +1,18 @@
+@page "/"
+<div class="board">
+    @foreach (var row in Maze)
+    {
+        <div class="d-flex">
+            @foreach (var cell in row)
+            {
+                var cellType = cell.IsWall ? "wall" : cell.Visited ? "" : "point";
+
+                if (cell.X == Pacman.X && cell.Y == Pacman.Y)
+                    cellType = "pacman " + Pacman.Direction.ToString().ToLower();
+                if (Ghosts.Any(ghost => cell.X == ghost.X && cell.Y == ghost.Y))
+                    cellType = "ghost";
+                <div class="cell @cellType"></div>
+            }
+        </div>
+    }
+</div>

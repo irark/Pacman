@@ -1,0 +1,7 @@
+<svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M10 2C14.416 2 18 5.584 18 10L18 18L2 18L2 10C2 5.584 5.584 2 10 2Z" fill="#A259FF"/>
+<ellipse cx="2.5" cy="3" rx="2.5" ry="3" transform="matrix(1 0 0 -1 4 12)" fill="white"/>
+<circle cx="1" cy="1" r="1" transform="matrix(1 0 0 -1 5.5 11)" fill="#163BF3"/>
+<ellipse cx="2.5" cy="3" rx="2.5" ry="3" transform="matrix(1 0 0 -1 11 12)" fill="white"/>
+<circle cx="1" cy="1" r="1" transform="matrix(1 0 0 -1 12.5 11)" fill="#163BF3"/>
+</svg>
