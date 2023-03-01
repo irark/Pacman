@@ -2,8 +2,8 @@
 {
     public enum GameType
     {
+        Default,
         AStar,
-        Greedy,
-        Manual
+        Greedy
     }
 }

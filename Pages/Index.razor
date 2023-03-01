@@ -1,17 +1,34 @@
 @page "/"
-<div class="board">
+@using Pacman.Models
+<div class="d-flex w-100 justify-content-between align-items-center">
+    <input type="number" min="1" @bind="@CountOfGhosts">
+<InputSelect @bind-Value="_gameType" class="form-control">
+
+    <option value="@GameType.Default">Default</option>
+    <option value="@GameType.AStar">AStar</option>
+    <option value="@GameType.Greedy">Greedy</option>
+
+</InputSelect>
+<button style="height: 72px; width: 200px" @onclick="StartGame">Start</button>
+
+</div><div class="board">
     @foreach (var row in Maze)
     {
         <div class="d-flex">
             @foreach (var cell in row)
             {
                 var cellType = cell.IsWall ? "wall" : cell.Visited ? "" : "point";
-
-                if (cell.X == Pacman.X && cell.Y == Pacman.Y)
+                var addStyle = "";
+                if (Start != null && Start.Y == cell.X && Start.X == cell.Y)
+                    addStyle = "background: green";
+                if (End != null && End.Y == cell.X && End.X == cell.Y)
+                    addStyle = "background: red";
+                if (Pacman != null && cell.X == Pacman.X && cell.Y == Pacman.Y)
                     cellType = "pacman " + Pacman.Direction.ToString().ToLower();
-                if (Ghosts.Any(ghost => cell.X == ghost.X && cell.Y == ghost.Y))
+                if (Ghosts != null && Ghosts.Any() && Ghosts.Any(ghost => cell.X == ghost.X && cell.Y == ghost.Y))
                     cellType = "ghost";
-                <div class="cell @cellType"></div>
+
+                <div class="cell @cellType" style="@addStyle"></div>
             }
         </div>
     }
