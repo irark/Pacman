@@ -1,28 +1,39 @@
 @page "/"
 @using Pacman.Models
-<div class="d-flex w-100 justify-content-between align-items-center">
-    <input type="number" min="1" @bind="@CountOfGhosts">
-<InputSelect @bind-Value="_gameType" class="form-control">
 
-    <option value="@GameType.Default">Default</option>
-    <option value="@GameType.AStar">AStar</option>
-    <option value="@GameType.Greedy">Greedy</option>
+<div class="d-flex w-100 justify-content-evenly align-items-center mb-3">
+    <div class="d-flex align-items-center">
+        Mode:
+        <InputSelect @bind-Value="_gameType" class="form-control" style="height: 42px; width: 200px; margin-left: 0.5rem;">
+            <option value="@GameType.Default">Default</option>
+            <option value="@GameType.AStar">AStar</option>
+            <option value="@GameType.Greedy">Greedy</option>
+        </InputSelect>
+    </div>
+    <div class="d-flex align-items-center" style=" @(_gameType == GameType.Default ? "" : "visibility: hidden")">
+        Count of ghosts:
+        <input type="number" min="1" @bind="@CountOfGhosts" style="height: 42px; width: 200px; margin-left: 0.5rem;">
 
-</InputSelect>
-<button style="height: 72px; width: 200px" @onclick="StartGame">Start</button>
+    </div>
+    <button style="height: 42px; width: 200px" @onclick="StartGame">Start</button>
 
-</div><div class="board">
+</div>
+<div class="board">
+    @if (_gameOver)
+    {
+        <div class="game-over">Game over!</div>
+    }
     @foreach (var row in Maze)
     {
-        <div class="d-flex">
+        <div class="d-flex maze-row">
             @foreach (var cell in row)
             {
                 var cellType = cell.IsWall ? "wall" : cell.Visited ? "" : "point";
                 var addStyle = "";
                 if (Start != null && Start.Y == cell.X && Start.X == cell.Y)
-                    addStyle = "background: green";
+                    addStyle = "background-color: green";
                 if (End != null && End.Y == cell.X && End.X == cell.Y)
-                    addStyle = "background: red";
+                    addStyle = "background-color: red";
                 if (Pacman != null && cell.X == Pacman.X && cell.Y == Pacman.Y)
                     cellType = "pacman " + Pacman.Direction.ToString().ToLower();
                 if (Ghosts != null && Ghosts.Any() && Ghosts.Any(ghost => cell.X == ghost.X && cell.Y == ghost.Y))

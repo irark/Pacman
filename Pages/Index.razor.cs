@@ -15,15 +15,17 @@ namespace Pacman.Pages
     public partial class Index : ComponentBase
     {
         [Inject] public IJSRuntime JsRuntime { get; set; }
-        public Models.Pacman Pacman { get; set; }
-        public List<Ghost> Ghosts { get; set; } = new();
-        public int CountOfGhosts { get; set; } = 5;
-        public List<List<Cell>> Maze { get; set; } = new(30);
-        public int[,] SimpleMaze { get; set; } = new int[30, 30];
+        private Models.Pacman Pacman { get; set; }
+        private List<Ghost> Ghosts { get; set; } = new();
+        private int CountOfGhosts { get; set; } = 5;
+        private List<List<Cell>> Maze { get; set; } = new(30);
+        private List<List<Cell>> ReverseMaze { get; set; } = new(30);
+        private int[,] SimpleMaze { get; set; } = new int[30, 30];
+        public Point Start { get; set; }
+        public Point End { get; set; }
         private bool _gameOver;
-        private GameType _gameType = GameType.AStar;
+        private GameType _gameType = GameType.Default;
         private Timer timer = new();
-        private Timer ghostTimer = new();
 
         protected override void OnInitialized()
         {
@@ -32,28 +34,43 @@ namespace Pacman.Pages
             {
                 lines[i] = lines[i].Replace("\r", "").Replace("\n", "");
                 Maze.Add(new List<Cell>(lines[i].Length));
+                ReverseMaze.Add(new List<Cell>(lines[i].Length));
                 for (var j = 0; j < lines[i].Length; j++)
                 {
                     Maze[i].Add(new Cell() {X = j, Y = i, IsWall = lines[i][j] == '1'});
+                    ReverseMaze[i].Add(new Cell() {X = i, Y = j, IsWall = lines[i][j] == '1'});
                     SimpleMaze[i, j] = lines[i][j] == '1' ? 1 : 0;
                 }
             }
         }
 
-        public void StartGame()
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (firstRender)
+            {
+                var dotNetObjRef = DotNetObjectReference.Create(this);
+                await JsRuntime.InvokeVoidAsync("initGame", dotNetObjRef);
+            }
+        }
+
+        private async Task StartGame()
         {
             Maze.ForEach(i => i.ForEach(i => i.Visited = false));
             Ghosts = new List<Ghost>();
-            StateHasChanged();
+            Start = new Point();
+            End = new Point();
+            _gameOver = false;
+            await InvokeAsync(StateHasChanged);
             switch (_gameType)
             {
                 case GameType.Default:
                     StartDefaultGame();
                     break;
                 case GameType.AStar:
-                    StartAStarGame();
+                    await StartAStarGame();
                     break;
                 case GameType.Greedy:
+                    await StartGreedyGame();
                     break;
             }
         }
@@ -62,13 +79,74 @@ namespace Pacman.Pages
         {
             Pacman = new(1, 1, Maze);
             for (var i = 0; i < CountOfGhosts; i++)
-                Ghosts.Add(new Ghost(Maze));
-            ghostTimer.Interval = 200;
-            ghostTimer.Enabled = true;
-            ghostTimer.Elapsed += TimerTick;
-            timer.Interval = 100;
+            {
+                var ghost = new Ghost(Maze);
+                ghost.OnMoved = () => InvokeAsync(StateHasChanged);
+                Ghosts.Add(ghost);
+            }
+
+            timer.Interval = 10;
             timer.Enabled = true;
             timer.Elapsed += CheckPacman;
+            Pacman.Start();
+            Ghosts.ForEach(i => i.StartGhost());
+        }
+
+
+        private async Task StartAStarGame()
+        {
+            List<Point> res = null;
+            while (res == null)
+            {
+                Maze.ForEach(i => i.ForEach(i => i.Visited = false));
+                Start = GeneratePoint();
+                End = GeneratePoint();
+                Pacman = new(Start.Y, Start.X, Maze);
+                res = AStarSolver.FindPath(SimpleMaze, Start, End);
+            }
+
+            foreach (var point in res)
+            {
+                if (point.Y > Pacman.X)
+                    Pacman.Direction = DirectionType.Right;
+                if (point.Y < Pacman.X)
+                    Pacman.Direction = DirectionType.Left;
+                if (point.X > Pacman.Y)
+                    Pacman.Direction = DirectionType.Down;
+                if (point.X < Pacman.Y)
+                    Pacman.Direction = DirectionType.Up;
+                Pacman.Move(null, null);
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(300);
+            }
+        }
+
+        private async Task StartGreedyGame()
+        {
+            List<Point> res = null;
+            while (res == null)
+            {
+                Start = GeneratePoint();
+                End = GeneratePoint();
+                Pacman = new(Start.Y, Start.X, Maze);
+
+                res = GreedySolver.FindPath(new Maze(ReverseMaze), Start, End);
+            }
+
+            foreach (var point in res)
+            {
+                if (point.Y > Pacman.X)
+                    Pacman.Direction = DirectionType.Right;
+                if (point.Y < Pacman.X)
+                    Pacman.Direction = DirectionType.Left;
+                if (point.X > Pacman.Y)
+                    Pacman.Direction = DirectionType.Down;
+                if (point.X < Pacman.Y)
+                    Pacman.Direction = DirectionType.Up;
+                Pacman.Move(null, null);
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(300);
+            }
         }
 
         private Point GeneratePoint()
@@ -84,60 +162,17 @@ namespace Pacman.Pages
             }
         }
 
-        public Point Start { get; set; }
-        public Point End { get; set; }
-
-        private void StartAStarGame()
-        {
-            List<Point> res = null;
-            while (res == null)
-            {
-                Start = GeneratePoint();
-                End = GeneratePoint();
-                Pacman = new(Start.Y, Start.X, Maze);
-                res = AStarSolver.FindPath(SimpleMaze, Start, End);
-
-            }
-
-            foreach (var point in res)
-            {
-                if (point.Y > Pacman.X) Pacman.GoRight();
-                if (point.Y < Pacman.X) Pacman.GoLeft();
-                if (point.X > Pacman.Y) Pacman.GoDown();
-                if (point.X < Pacman.Y) Pacman.GoUp();
-            }
-        }
-
-        private void TimerTick(object? sender, ElapsedEventArgs elapsedEventArgs)
-        {
-            foreach (var ghost in Ghosts)
-            {
-                MoveGhost(ghost);
-            }
-        }
-
-        private void MoveGhost(Ghost ghost)
-        {
-            ghost.MoveGhost();
-            InvokeAsync(StateHasChanged);
-        }
-
         private void CheckPacman(object? sender, ElapsedEventArgs e)
         {
+            if (_gameOver)
+                return;
             _gameOver = Ghosts.Any(i => i.X == Pacman.X && i.Y == Pacman.Y);
             if (_gameOver)
             {
-                ghostTimer.Enabled = false;
+                Ghosts.ForEach(i => i.StopGhost());
             }
-        }
 
-        protected override async Task OnAfterRenderAsync(bool firstRender)
-        {
-            if (firstRender)
-            {
-                var dotNetObjRef = DotNetObjectReference.Create(this);
-                await JsRuntime.InvokeVoidAsync("initGame", dotNetObjRef);
-            }
+            InvokeAsync(StateHasChanged);
         }
 
         [JSInvokable]
@@ -148,16 +183,16 @@ namespace Pacman.Pages
             switch (key)
             {
                 case "ArrowDown":
-                    Pacman.GoDown();
+                    Pacman.Direction = DirectionType.Down;
                     break;
                 case "ArrowLeft":
-                    Pacman.GoLeft();
+                    Pacman.Direction = DirectionType.Left;
                     break;
                 case "ArrowRight":
-                    Pacman.GoRight();
+                    Pacman.Direction = DirectionType.Right;
                     break;
                 case "ArrowUp":
-                    Pacman.GoUp();
+                    Pacman.Direction = DirectionType.Up;
                     break;
             }
 

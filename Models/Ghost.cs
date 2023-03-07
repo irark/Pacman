@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Timers;
+using Timer = System.Timers.Timer;
 
 namespace Pacman.Models
 {
@@ -24,11 +26,24 @@ namespace Pacman.Models
         }
         public int X { get; set; }
         public int Y { get; set; }
+        public Action OnMoved { get; set; }
         private List<List<Cell>> Maze { get; set; }
         private DirectionType Direction { get; set; }
         private Random ran = new();
+        private Timer ghostTimer = new();
 
-        public void MoveGhost()
+        public void StartGhost()
+        {
+            ghostTimer.Interval = 300;
+            ghostTimer.Enabled = true;
+            ghostTimer.Elapsed += MoveGhost;   
+        }
+
+        public void StopGhost()
+        {
+            ghostTimer.Enabled = false;
+        }
+        public void MoveGhost(object? sender, ElapsedEventArgs elapsedEventArgs)
         {
             var canMove = false;
             OtherDirection();
@@ -57,6 +72,7 @@ namespace Pacman.Models
                         break;
                 }
             }
+            OnMoved?.Invoke();
         }
 
         private bool CheckDirection()
