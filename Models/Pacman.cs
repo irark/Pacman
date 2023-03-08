@@ -8,12 +8,12 @@ namespace Pacman.Models
     public class Pacman
     {
         private readonly Timer pacmanTimer = new();
+        public Action OnMoved { get; set; }
         public Pacman(int x, int y, List<List<Cell>> maze)
         {
             X = x;
             Y = y;
             Maze = maze;
-            Maze[Y][X].Visited = true; 
         }
 
         public void Start()
@@ -23,6 +23,11 @@ namespace Pacman.Models
             pacmanTimer.Elapsed += Move;
         }
 
+        public void Stop()
+        {
+            pacmanTimer.Enabled = false;
+        }
+
         public int X { get; set; } = 1;
         public int Y { get; set; } = 1;
         public List<List<Cell>> Maze { get; set; } = new();
@@ -30,29 +35,27 @@ namespace Pacman.Models
 
         public void Move(object? sender, ElapsedEventArgs elapsedEventArgs)
         {
+            Maze[Y][X].Visited = true;
             switch (Direction)
             {
                case DirectionType.Down:
                    if (Y != Maze.Count - 1 && !Maze[Y + 1][X].IsWall)
                        Y += 1;
-                   Maze[Y][X].Visited = true;
                    break;
                case DirectionType.Left:
                    if (X != 0 && !Maze[Y][X - 1].IsWall)
                        X -= 1;
-                   Maze[Y][X].Visited = true;
                    break;
                case DirectionType.Right:
                    if (X != Maze[Y].Count - 1 && !Maze[Y][X + 1].IsWall)
                        X += 1;
-                   Maze[Y][X].Visited = true;
                    break;
                case DirectionType.Up: 
                    if (Y != 0 && !Maze[Y - 1][X].IsWall)
                        Y -= 1;
-                   Maze[Y][X].Visited = true;
                    break;
             }
+            OnMoved.Invoke();
         }
     }
 }

@@ -28,7 +28,11 @@
         <div class="d-flex maze-row">
             @foreach (var cell in row)
             {
-                var cellType = cell.IsWall ? "wall" : cell.Visited ? "" : "point";
+                var cellType = "point";
+                if (cell.IsWall)
+                    cellType = "wall";
+                else if (cell.Visited)
+                    cellType = "";
                 var addStyle = "";
                 if (Start != null && Start.Y == cell.X && Start.X == cell.Y)
                     addStyle = "background-color: green";

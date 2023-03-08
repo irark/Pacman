@@ -81,13 +81,22 @@ namespace Pacman.Pages
             for (var i = 0; i < CountOfGhosts; i++)
             {
                 var ghost = new Ghost(Maze);
-                ghost.OnMoved = () => InvokeAsync(StateHasChanged);
+                ghost.OnMoved = () =>
+                {
+                    CheckPacman();
+                    InvokeAsync(StateHasChanged);
+                };
                 Ghosts.Add(ghost);
             }
 
-            timer.Interval = 10;
-            timer.Enabled = true;
-            timer.Elapsed += CheckPacman;
+            // timer.Interval = 1;
+            // timer.Enabled = true;
+            // timer.Elapsed += CheckPacman;
+            Pacman.OnMoved = () =>
+            {
+                CheckPacman();
+                InvokeAsync(StateHasChanged);
+            };
             Pacman.Start();
             Ghosts.ForEach(i => i.StartGhost());
         }
@@ -162,17 +171,17 @@ namespace Pacman.Pages
             }
         }
 
-        private void CheckPacman(object? sender, ElapsedEventArgs e)
+        private void CheckPacman()
         {
             if (_gameOver)
                 return;
             _gameOver = Ghosts.Any(i => i.X == Pacman.X && i.Y == Pacman.Y);
             if (_gameOver)
             {
+                Pacman.Stop();
                 Ghosts.ForEach(i => i.StopGhost());
+                InvokeAsync(StateHasChanged);
             }
-
-            InvokeAsync(StateHasChanged);
         }
 
         [JSInvokable]
